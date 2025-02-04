@@ -42,7 +42,7 @@ export const loginUsuario = async (req: Request, res: Response) => {
         msg: "Email incorrecto",
       });
     }
-    let validPassword = bcrypt.compare(password, usuario.password!);
+    let validPassword = await bcrypt.compare(password, usuario.password!);
     if (!validPassword) {
       return res.status(400).json({
         success: false,
@@ -50,8 +50,8 @@ export const loginUsuario = async (req: Request, res: Response) => {
       });
     }
     // generar token
-    const token = await generarJWT(usuario.id!, usuario.name!);
-    return res.status(201).json({
+    const token: any = await generarJWT(usuario.id!, usuario.name!);
+    return res.status(200).json({
       success: true,
       msg: { uid: usuario.id, name: usuario.name, token },
     });

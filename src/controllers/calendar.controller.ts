@@ -1,29 +1,49 @@
 import { Request, Response } from "express";
-import { validationResult } from "express-validator";
-import bcrypt from "bcrypt";
-import User from "../models/User";
-import generarJWT from "../helpers/jwt";
-import { CustomRequest } from "../middlewares/validar-jwt";
-import jsonwebtoken from "jsonwebtoken";
 import Event from "../models/Event";
 export const crearEvento = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  // ARGEGAR MIDDLEWARE
   try {
     delete req.body.bgColor;
+
+    const fechaInicio = new Date(req.body.start);
+    const fechaFin = new Date(req.body.end);
+
+    // Buscar eventos que se solapen con el nuevo evento
+    const eventoExistente = await Event.findOne({
+      $or: [
+        // Caso 1: La fecha de inicio del nuevo evento cae dentro de un evento existente
+        { start: { $lte: fechaInicio }, end: { $gte: fechaInicio } },
+        // Caso 2: La fecha de fin del nuevo evento cae dentro de un evento existente
+        { start: { $lte: fechaFin }, end: { $gte: fechaFin } },
+        // Caso 3: El nuevo evento engloba completamente un evento existente
+        { start: { $gte: fechaInicio }, end: { $lte: fechaFin } },
+      ],
+    });
+
+    if (eventoExistente) {
+      return res.status(400).json({
+        success: false,
+        msg: "Ya existe un evento en este rango de fechas",
+      });
+    }
     const evento = new Event(req.body);
-    console.log("BACKEND EVENTO;:", evento);
-    evento.save();
-    return res
-      .status(201)
-      .json({ success: true, msg: "Evento creado", evento });
+    await evento.save();
+
+    return res.status(201).json({
+      success: true,
+      msg: "Evento creado",
+      evento,
+    });
   } catch (error) {
-    throw new Error("Error al crear evento.");
+    console.error("Error al crear evento:", error);
+    return res.status(500).json({
+      success: false,
+      msg: "Error al crear evento",
+    });
   }
 };
-
 export const actualizarEvento = async (req: Request, res: Response) => {
   try {
     const { id } = req.params; // Se obtiene el ID del evento a actualizar
@@ -31,6 +51,28 @@ export const actualizarEvento = async (req: Request, res: Response) => {
     // Excluir la propiedad bgColor si existe en req.body
     if ("bgColor" in req.body) {
       delete req.body.bgColor;
+    }
+
+    const fechaInicio = new Date(req.body.start);
+    const fechaFin = new Date(req.body.end);
+
+    // Buscar eventos que se solapen con el nuevo evento
+    const eventoExistente = await Event.findOne({
+      $or: [
+        // Caso 1: La fecha de inicio del nuevo evento cae dentro de un evento existente
+        { start: { $lte: fechaInicio }, end: { $gte: fechaInicio } },
+        // Caso 2: La fecha de fin del nuevo evento cae dentro de un evento existente
+        { start: { $lte: fechaFin }, end: { $gte: fechaFin } },
+        // Caso 3: El nuevo evento engloba completamente un evento existente
+        { start: { $gte: fechaInicio }, end: { $lte: fechaFin } },
+      ],
+    });
+
+    if (eventoExistente) {
+      return res.status(400).json({
+        success: false,
+        msg: "Ya existe un evento en este rango de fechas",
+      });
     }
 
     // Buscar y actualizar el evento

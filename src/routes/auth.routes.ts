@@ -15,7 +15,7 @@ authRoutes.post(
     check("email", "El email debe tener formato correcto").isEmail(),
     check("password", "El password es obligatorio").notEmpty(),
     check("password", "El password debe ser de 6 caracteres").isLength({
-      min: 6,
+      min: 3,
     }),
     validarDatos,
   ],
